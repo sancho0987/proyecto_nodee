@@ -1,28 +1,18 @@
-// Importamos Express para crear el router
-import express from "express";
-
-// Importamos los controladores de tareas
+import { Router } from "express";
 import {
   getTasks,
   createTask,
   updateTask,
-  deleteTask,
-} from "./controllers/taskController.js";
+  deleteTask
+} from "../controllers/tasks.controller.js";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
 
-// Creamos el router
-const router = express.Router();
+const router = Router();
 
-// GET /tasks → Lista todas las tareas
-router.get("/", getTasks);
+// Todas las rutas protegidas
+router.get("/tasks", authMiddleware, getTasks);
+router.post("/tasks", authMiddleware, createTask);
+router.put("/tasks/:id", authMiddleware, updateTask);
+router.delete("/tasks/:id", authMiddleware, deleteTask);
 
-// POST /tasks → Crea una nueva tarea
-router.post("/", createTask);
-
-// PUT /tasks/:id → Actualiza una tarea existente
-router.put("/:id", updateTask);
-
-// DELETE /tasks/:id → Elimina una tarea por ID
-router.delete("/:id", deleteTask);
-
-// Exportamos el router para usarlo en app.js
 export default router;

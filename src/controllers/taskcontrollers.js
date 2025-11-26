@@ -1,74 +1,75 @@
-// Importamos PrismaClient para usar la base de datos
-import { PrismaClient } from "@prisma/client";
+import prisma from "../prisma.js";
 
-// Creamos una instancia de Prisma
-const prisma = new PrismaClient();
-
-/**
- * Controlador: Obtener todas las tareas
- */
+// Obtener tareas del usuario autenticado
 export const getTasks = async (req, res) => {
   try {
-    const tasks = await prisma.task.findMany(); // Obtiene todas las tareas de la tabla
-    res.json(tasks); // Devuelve las tareas
+    const tasks = await prisma.task.findMany({
+      where: {
+        userId: req.user.id
+      }
+    });
+
+    res.status(200).json(tasks);
   } catch (error) {
-    console.error("Error fetching tasks:", error);
-    res.status(500).json({ error: "Error fetching tasks" });
+    res.status(500).json({ message: "Error fetching tasks", error });
   }
 };
 
-/**
- * Controlador: Crear una nueva tarea
- */
+// Crear tarea asociada al usuario autenticado
 export const createTask = async (req, res) => {
   try {
-    const { title, description } = req.body; // Información enviada por el usuario
+    const { title, description, status } = req.body;
 
-    const newTask = await prisma.task.create({
-      data: { title, description },
+    const task = await prisma.task.create({
+      data: {
+        title,
+        description,
+        status,
+        userId: req.user.id
+      }
     });
 
-    res.status(201).json(newTask); // 201 = creado
+    res.status(201).json(task);
   } catch (error) {
-    console.error("Error creating task:", error);
-    res.status(500).json({ error: "Error creating task" });
+    res.status(500).json({ message: "Error creating task", error });
   }
 };
 
-/**
- * Controlador: Actualizar una tarea por ID
- */
+// Actualizar solo si pertenece al usuario
 export const updateTask = async (req, res) => {
   try {
-    const { id } = req.params; // ID de la tarea a actualizar
-    const { title, description } = req.body;
+    const { id } = req.params;
 
-    const updatedTask = await prisma.task.update({
-      where: { id: Number(id) },
-      data: { title, description },
+    const task = await prisma.task.updateMany({
+      where: { id: Number(id), userId: req.user.id },
+      data: req.body
     });
 
-    res.json(updatedTask);
+    if (task.count === 0) {
+      return res.status(404).json({ message: "Task not found or not yours" });
+    }
+
+    res.status(200).json({ message: "Task updated" });
   } catch (error) {
-    console.error("Error updating task:", error);
-    res.status(500).json({ error: "Error updating task" });
+    res.status(500).json({ message: "Error updating task", error });
   }
 };
 
-/**
- * Controlador: Eliminar una tarea por ID
- */
+// Eliminar solo si pertenece al usuario
 export const deleteTask = async (req, res) => {
   try {
     const { id } = req.params;
 
-    await prisma.task.delete({
-      where: { id: Number(id) },
+    const task = await prisma.task.deleteMany({
+      where: { id: Number(id), userId: req.user.id }
     });
 
-    res.json({ message: "Task deleted successfully" });
+    if (task.count === 0) {
+      return res.status(404).json({ message: "Task not found or not yours" });
+    }
+
+    res.status(200).json({ message: "Task deleted" });
   } catch (error) {
-    console.error("Error deleting task:", error);
-    res.status(500).json({ error: "Error deleting task" });
+    res.status(500).json({ message: "Error deleting task", error });
   }
 };
