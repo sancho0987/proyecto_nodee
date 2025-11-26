@@ -27,3 +27,23 @@ Se usa para mantener sesiones sin guardar datos en el servidor: cada petición i
 ### Ejemplo real:
 Cuando un usuario inicia sesión en una app, se le entrega un JWT. Cada vez que quiere ver tareas o editar algo, manda el token. Si el token es válido, la API lo deja entrar sin pedirle la contraseña otra vez.
 
+# Seguridad – Implementación de JWT
+
+En este proyecto utilizamos **JSON Web Tokens (JWT)** para autenticar a los usuarios de forma segura.
+
+## ¿Cómo implementamos JWT?
+
+1. **Inicio de sesión**
+   - El usuario envía `email` y `password` a `/auth/login`.
+   - Comparamos el password con bcrypt.
+   - Si es válido, generamos un JWT.
+
+2. **Contenido del token**
+   - `sub`: contiene el ID del usuario autenticado.
+   - `exp`: tiempo de expiración del token (1 hora en este proyecto).
+
+3. **Generación del token**
+   Usamos:
+
+   ```js
+   jwt.sign({ sub: user.id }, process.env.JWT_SECRET, { expiresIn: "1h" })

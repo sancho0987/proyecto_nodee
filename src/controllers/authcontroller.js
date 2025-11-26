@@ -1,45 +1,45 @@
-import prisma from "../prisma.js";
-import bcrypt from "bcryptjs";
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
-export const register = async (req, res) => {
-  try {
+const prisma = new PrismaClient();
+
+export const login = async (req, res) => {
     const { email, password } = req.body;
 
-    // Validación de datos obligatorios
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+    try {
+        // 1. Buscar usuario por su email
+        const user = await prisma.user.findUnique({
+            where: { email },
+        });
+
+        if (!user) {
+            return res.status(400).json({ error: "Credenciales inválidas" });
+        }
+
+        // 2. Comparar contraseña con bcrypt
+        const isValid = await bcrypt.compare(password, user.password);
+
+        if (!isValid) {
+            return res.status(400).json({ error: "Credenciales inválidas" });
+        }
+
+        // 3. Generar JWT
+        const token = jwt.sign(
+            {
+                sub: user.id,            // identificador del usuario
+            },
+            process.env.JWT_SECRET,      // clave del .env
+            {
+                expiresIn: "1h",         // exp: 1 hora
+            }
+        );
+
+        // 4. Responder con el token
+        res.json({ token });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error en el servidor" });
     }
-
-    // Verificar si el usuario ya existe
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
-
-    if (existingUser) {
-      return res.status(400).json({ message: "Email already registered" });
-    }
-
-    // Hashear contraseña
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Crear usuario
-    const newUser = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-      }
-    });
-
-    res.status(201).json({
-      message: "User registered successfully",
-      user: {
-        id: newUser.id,
-        email: newUser.email,
-        createdAt: newUser.createdAt
-      }
-    });
-
-  } catch (error) {
-    res.status(500).json({ message: "Error registering user", error });
-  }
 };
