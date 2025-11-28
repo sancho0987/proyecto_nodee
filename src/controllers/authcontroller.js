@@ -1,9 +1,51 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient();
 
+export const register = async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        // 1. Verificar si el usuario ya existe
+        const existingUser = await prisma.user.findUnique({
+            where: { email },
+        });
+
+        if (existingUser) {
+            return res.status(400).json({ error: "El usuario ya existe" });
+        }
+
+        // 2. Encriptar la contraseña
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 3. Crear el usuario
+        const newUser = await prisma.user.create({
+            data: {
+                email,
+                password: hashedPassword,
+            },
+        });
+
+        res.json({
+            message: "Usuario registrado correctamente",
+            user: {
+                id: newUser.id,
+                email: newUser.email
+            }
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error en el servidor" });
+    }
+};
+
+
+// ------------------------------------
+// LOGIN
+// ------------------------------------
 export const login = async (req, res) => {
     const { email, password } = req.body;
 
@@ -27,15 +69,14 @@ export const login = async (req, res) => {
         // 3. Generar JWT
         const token = jwt.sign(
             {
-                sub: user.id,            // identificador del usuario
+                sub: user.id,
             },
-            process.env.JWT_SECRET,      // clave del .env
+            process.env.JWT_SECRET,
             {
-                expiresIn: "1h",         // exp: 1 hora
+                expiresIn: "1h",
             }
         );
 
-        // 4. Responder con el token
         res.json({ token });
 
     } catch (error) {

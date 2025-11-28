@@ -31,13 +31,13 @@ app.get("/", (req, res) => {
 });
 
 // Importamos las rutas de tareas
-import taskRoutes from "./src/routes/taskRoutes.js";
+import taskRoutes from "./routes/taskroutes.js";
 
 // Conectamos las rutas bajo el prefijo /tasks
 app.use("/tasks", taskRoutes);
 
 // Importamos rutas de autenticación
-import authRoutes from "./src/routes/authRoutes.js";
+import authRoutes from "./routes/authroutes.js";
 
 // Usamos las rutas bajo /auth
 app.use("/auth", authRoutes);
